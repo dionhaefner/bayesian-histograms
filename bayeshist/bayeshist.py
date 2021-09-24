@@ -52,12 +52,15 @@ def _fisher_test(ps1, ns1, ps2, ns2, *args, threshold=0.05):
     return pvalue < threshold, pvalue
 
 
-def _prune_histogram(bin_edges, pos_samples, neg_samples, test, prior_params):
+def _prune_histogram(bin_edges, pos_samples, neg_samples, test, prior_params, max_bin_size=None, yield_steps=False):
     """Perform histogram pruning.
 
     This iteratively merges neighboring bins until all neighbor pairs pass
     the given statistical test.
     """
+    if max_bin_size is None:
+        max_bin_size = float("inf")
+
     while True:
         new_bins = []
         new_pos_samples = []
@@ -79,7 +82,7 @@ def _prune_histogram(bin_edges, pos_samples, neg_samples, test, prior_params):
                 new_neg_samples.append(neg_samples[i])
                 break
 
-            is_significant, _ = test(
+            is_significant, test_value = test(
                 pos_samples[i],
                 neg_samples[i],
                 pos_samples[i + 1],
@@ -87,19 +90,40 @@ def _prune_histogram(bin_edges, pos_samples, neg_samples, test, prior_params):
                 *prior_params
             )
 
-            if is_significant:
-                # keep split
-                new_bins.append(bin_edges[i])
-                new_pos_samples.append(pos_samples[i])
-                new_neg_samples.append(neg_samples[i])
-                i += 1
-            else:
-                # reverse split
+            reverse_split = (
+                not is_significant
+                # ensure that we stay below max_bin_size
+                and (bin_edges[i + 1] - bin_edges[i] < max_bin_size)
+                # but always merge empty bins
+                or (neg_samples[i] == pos_samples[i] == 0)
+                or (neg_samples[i + 1] == pos_samples[i + 1] == 0)
+            )
+
+            if yield_steps:
+                yield dict(
+                    i=i - splits_reversed,
+                    samples_1=(pos_samples[i], neg_samples[i]),
+                    samples_2=(pos_samples[i+1], neg_samples[i+1]),
+                    test_value=test_value,
+                    is_significant=is_significant,
+                    reverse_split=reverse_split,
+                    bins=np.concatenate((new_bins, bin_edges[i:])),
+                    pos_samples=np.concatenate((new_pos_samples, pos_samples[i:])),
+                    neg_samples=np.concatenate((new_neg_samples, neg_samples[i:])),
+                )
+
+            if reverse_split:
                 splits_reversed += 1
                 new_bins.append(bin_edges[i])
                 new_pos_samples.append(pos_samples[i] + pos_samples[i + 1])
                 new_neg_samples.append(neg_samples[i] + neg_samples[i + 1])
                 i += 2
+            else:
+                # keep everything and proceed with next pair
+                new_bins.append(bin_edges[i])
+                new_pos_samples.append(pos_samples[i])
+                new_neg_samples.append(neg_samples[i])
+                i += 1
 
         new_bins.append(bin_edges[-1])
 
@@ -117,7 +141,7 @@ def _prune_histogram(bin_edges, pos_samples, neg_samples, test, prior_params):
     pos_samples = np.array(pos_samples)
     neg_samples = np.array(neg_samples)
 
-    return bin_edges, pos_samples, neg_samples
+    yield bin_edges, pos_samples, neg_samples
 
 
 def bayesian_histogram(
@@ -128,6 +152,7 @@ def bayesian_histogram(
     prior_params: Optional[Tuple[float, float]] = None,
     pruning_method: Optional[Literal["bayes", "fisher"]] = "bayes",
     pruning_threshold: Optional[float] = None,
+    max_bin_size: Optional[float] = None,
 ) -> Tuple[np.ndarray, beta_dist]:
     """Compute Bayesian histogram for data x, binary target y.
 
@@ -163,6 +188,10 @@ def bayesian_histogram(
         pruning_threshold:
             Threshold to use in significance test specified by `pruning_method`.
             (default: 2 for "bayes", 0.2 for "fisher")
+
+        max_bin_size:
+            Maximum size (in units of x) above which bins will not be merged
+            (except empty bins). (default: unlimited size)
 
     Returns:
 
@@ -223,9 +252,10 @@ def bayesian_histogram(
             prior_params = (1, num_neg_samples / num_pos_samples)
 
     if pruning_method is not None:
-        bin_edges, pos_samples, neg_samples = _prune_histogram(
-            bin_edges, pos_samples, neg_samples, test, prior_params
+        pruner = _prune_histogram(
+            bin_edges, pos_samples, neg_samples, test, prior_params, max_bin_size=max_bin_size
         )
+        bin_edges, pos_samples, neg_samples = next(iter(pruner))
 
     return bin_edges, beta_dist(
         pos_samples + prior_params[0], neg_samples + prior_params[1]
