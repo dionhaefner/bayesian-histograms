@@ -1,15 +1,17 @@
 # Bayesian histograms
-Bayesian histograms for estimation of binary event rates, with fully automated bin pruning.
+Bayesian histograms for estimation of binary rare event rates, with fully automated bin pruning :bar_chart:
 
 ## What is this for?
 
-**Bayesian histograms** are a nifty tool for data exploration if:
+**Bayesian histograms** are a nifty tool for data mining if:
 
 - you want to know how the *event rate* (probability) of a binary **rare event** depends on a parameter;
-- you have *no idea* how the event rate depends on the parameter;
+- you suspect the event rate depends **highly non-linearly** on the parameter;
 - you don't know whether you have *enough data*, so you need **uncertainty information**.
 
-This is how they look in practice:
+Thanks to an adaptive bin pruning algorithm, you don't even have to choose the number of bins, and you should get good results out of the box.
+
+This is how they look in practice ([see full example below](#usage-example)):
 
 <p align="center">
 <img src="doc/bayesian-histogram-comp.png?raw=true" width="450px">
