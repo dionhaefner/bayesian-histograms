@@ -1,7 +1,4 @@
 # Bayesian histograms
-Bayesian histograms for estimation of binary rare event rates, with fully automated bin pruning :bar_chart:
-
-## What is this for?
 
 **Bayesian histograms** are a nifty tool for data mining if:
 
