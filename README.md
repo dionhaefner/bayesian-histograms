@@ -3,6 +3,7 @@
 **Bayesian histograms** are a nifty tool for data mining if:
 
 - you want to know how the *event rate* (probability) of a binary **rare event** depends on a parameter;
+- you have millions or even **billions of data points**, but few positive samples;
 - you suspect the event rate depends **highly non-linearly** on the parameter;
 - you don't know whether you have *enough data*, so you need **uncertainty information**.
 
