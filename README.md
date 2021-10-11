@@ -3,7 +3,17 @@ Bayesian histograms for estimation of binary event rates, with fully automated b
 
 ## What is this for?
 
-When you are trying to get a feeling for how the event rate (probability) of a rare event depends on a parameter, while making no assumptions on how the event rate depends on the parameter.
+**Bayesian histograms** are a nifty tool for data exploration if:
+
+- you want to know how the *event rate* (probability) of a binary **rare event** depends on a parameter;
+- you have *no idea* how the event rate depends on the parameter;
+- you don't know whether you have *enough data*, so you need **uncertainty information**.
+
+This is how they look in practice:
+
+<p align="center">
+<img src="doc/bayesian-histogram-comp.png?raw=true" width="450px">
+</p>
 
 ## Installation
 
@@ -40,11 +50,13 @@ The result is something like this:
 <p align="center">
 <img src="doc/bayesian-histogram-comp.png?raw=true" width="450px">
 </p>
-  
+
 See also [demo.ipynb](demo.ipynb) for a full walkthrough of this example.
 
 
-Full docstring:
+## API reference
+
+### `bayesian_histogram`
 
 ```python
 
@@ -111,6 +123,52 @@ def bayesian_histogram(
         >>> plt.plot(0.5 * (bins[1:] + bins[:-1]), beta_dist.mean())
 
     """
-    
-
 ```
+
+### `plot_bayesian_histogram`
+
+```python
+def plot_bayesian_histogram(
+    bin_edges: np.ndarray,
+    data_dist: FrozenDistType,
+    color: Union[str, Iterable[float], None] = None,
+    label: Optional[str] = None,
+    ax: Any = None,
+    ci: Optional[Tuple[float, float]] = (0.01, 0.99)
+) -> None:
+    """Plot a Bayesian histogram as horizontal lines with credible intervals.
+
+    Parameters:
+
+        bin_edges:
+            Coordinates of bin edges
+
+        data_dist:
+            n-dimensional Beta distribution (n = number of bins)
+
+        color:
+            Color to use (default: use next in current color cycle)
+
+        label:
+            Legend label (default: no label)
+
+        ax:
+            Matplotlib axis to use (default: current axis)
+
+        ci:
+            Credible interval used for shading, use `None` to disable shading.
+
+    Example:
+
+        >>> x = np.random.randn(1000)
+        >>> p = 10 ** (-2 + x)
+        >>> y = np.random.rand() < p
+        >>> bins, beta_dist = bayesian_histogram(x, y)
+        >>> plot_bayesian_histogram(bins, beta_dist)
+
+    """
+```
+
+## Questions?
+
+[Feel free to open an issue.](https://github.com/dionhaefner/bayesian-histograms/issues)

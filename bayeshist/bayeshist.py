@@ -10,6 +10,8 @@ import numpy as np
 
 from scipy.stats import beta as beta_dist, betabinom as betabinom_dist, fisher_exact
 
+FrozenDistType = type(beta_dist(0, 0))
+
 
 def _bayes_factor_test(ps1, ns1, ps2, ns2, prior_p, prior_n, threshold=2):
     """Tests whether two binomial datasets come from the same distribution.
@@ -153,7 +155,7 @@ def bayesian_histogram(
     pruning_method: Optional[Literal["bayes", "fisher"]] = "bayes",
     pruning_threshold: Optional[float] = None,
     max_bin_size: Optional[float] = None,
-) -> Tuple[np.ndarray, beta_dist]:
+) -> Tuple[np.ndarray, FrozenDistType]:
     """Compute Bayesian histogram for data x, binary target y.
 
     The output is a Beta distribution over the event rate for each bin.
