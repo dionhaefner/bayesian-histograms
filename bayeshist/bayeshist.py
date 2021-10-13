@@ -8,7 +8,8 @@ from functools import partial
 
 import numpy as np
 
-from scipy.stats import beta as beta_dist, betabinom as betabinom_dist, fisher_exact
+from scipy.stats import beta as beta_dist, fisher_exact
+from scipy.special import betaln
 
 FrozenDistType = type(beta_dist(0, 0))
 
@@ -24,22 +25,26 @@ def _bayes_factor_test(ps1, ns1, ps2, ns2, prior_p, prior_n, threshold=2):
     The Bayes Factor gives the relative increase in data likelihood
     after the split (higher values -> splitting is more favorable).
     """
-    ps_total = ps1 + ps2
-    ns_total = ns1 + ns2
-    n_1 = ps1 + ns1
-    n_2 = ps2 + ns2
+    # alpha and beta coefficients for distribution of p(y=1)
+    alpha_1 = ps1 + prior_p
+    beta_1 = ns1 + prior_n
 
-    def combined_dist(n):
-        return betabinom_dist(n, ps_total + prior_p, ns_total + prior_n)
+    alpha_2 = ps2 + prior_p
+    beta_2 = ns2 + prior_n
 
-    dist_1 = betabinom_dist(n_1, ps1 + prior_p, ns1 + prior_n)
-    dist_2 = betabinom_dist(n_2, ps2 + prior_p, ns2 + prior_n)
+    alpha_tot = ps1 + ps2 + prior_p
+    beta_tot = ns1 + ns2 + prior_n
+
+    # we could use scipy.state.betabinom here, but betaln is faster
+    def betabinom_logp(ps, ns, alpha, beta):
+        # this omits choose(n, k), drops out in Bayes factor
+        return betaln(ps + alpha, ns + beta) - betaln(alpha, beta)
 
     bayes_factor = np.exp(
-        -combined_dist(n_1).logpmf(ps1)
-        - combined_dist(n_2).logpmf(ps2)
-        + dist_1.logpmf(ps1)
-        + dist_2.logpmf(ps2)
+        -betabinom_logp(ps1, ns1, alpha_tot, beta_tot)
+        - betabinom_logp(ps2, ns2, alpha_tot, beta_tot)
+        + betabinom_logp(ps1, ns1, alpha_1, beta_1)
+        + betabinom_logp(ps2, ns2, alpha_2, beta_2)
     )
 
     return bayes_factor > threshold, bayes_factor
