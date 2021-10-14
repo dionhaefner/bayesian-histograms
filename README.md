@@ -53,6 +53,9 @@ The result is something like this:
 
 See also [demo.ipynb](demo.ipynb) for a full walkthrough of this example.
 
+## But how do they work?
+
+[Here's the blog post.](https://dionhaefner.github.io/2021/09/bayesian-histograms-for-rare-event-classification/)
 
 ## API reference
 
